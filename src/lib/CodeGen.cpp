@@ -26,9 +26,12 @@ namespace tigl {
         const auto c_generateCpp11ScopedEnums = false;
 
         const auto tixiHelperNamespace = "tixi";
-        const auto c_uidMgrName = std::string("CTiglUIDManager");
+        //const auto c_uidMgrName = std::string("CTiglUIDManager");
+        const auto c_uidMgrName = std::string("uIDManager");
         const auto c_unboundedConstantName = "tixi::xsdUnbounded";
         const auto c_uidRefType = std::string("stringUIDBaseType");
+
+        const auto c_libraryKey = std::string("cpacsLibrary");
     }
 
     namespace {
@@ -175,6 +178,17 @@ namespace tigl {
             std::vector<std::string> cppIncludes;
         };
 
+        // Configuration class
+        tigl::LibraryConfiguration* m_libConfig = new LibraryConfiguration(c_libraryKey);
+
+        const std::string m_exportVariable = m_libConfig->exportVariable();
+        const std::string m_libNamespace = m_libConfig->libNamespace();
+        const std::string m_libInternal = m_libConfig->libInternal();
+        const std::string m_errorClass = m_libConfig->errorClass();
+        const std::string m_uIDObject = m_libConfig->uIDObject();
+        const std::string m_reqUIDObject = m_libConfig->reqUIDObject();
+        const std::string m_optUIDObject = m_libConfig->optUIDObject();
+
         TypeSystem m_types;
         std::string m_namespace;
         const Tables& m_tables;
@@ -248,19 +262,19 @@ namespace tigl {
 
         void writeAccessorDeclarations(IndentingStreamWrapper& hpp, const std::vector<Field>& fields) const {
             for (const auto& f : fields) {
-                hpp << "TIGL_EXPORT virtual const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
+                hpp << m_exportVariable << " virtual const " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "() const;";
 
                 // generate setter only for fundamental and enum types which are not vectors
                 const bool isClassType = m_types.classes.find(f.typeName) != std::end(m_types.classes);
                 if (!isClassType && f.cardinality() != Cardinality::Vector) {
-                    hpp << "TIGL_EXPORT virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
+                    hpp << m_exportVariable << " virtual void Set" << capitalizeFirstLetter(f.name()) << "(const " << getterSetterType(f) << "& value);";
                 } // generate special accessors for uid reference vectors
                 else if (f.cardinality() == Cardinality::Vector && f.xmlTypeName == c_uidRefType) {
-                    hpp << "TIGL_EXPORT virtual void AddTo" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value);";
-                    hpp << "TIGL_EXPORT virtual bool RemoveFrom" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value);";
+                    hpp << m_exportVariable << " virtual void AddTo" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value);";
+                    hpp << m_exportVariable << " virtual bool RemoveFrom" << capitalizeFirstLetter(f.name()) << "(const " << vectorInnerType(f) << "& value);";
                 }
                 else
-                    hpp << "TIGL_EXPORT virtual " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
+                    hpp << m_exportVariable << " virtual " << getterSetterType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "();";
                 hpp << EmptyLine;
             }
         }
@@ -453,9 +467,9 @@ namespace tigl {
                     }
                     else if (c.deps.parents.size() == 1) {
                         if (isConst)
-                            hpp << "TIGL_EXPORT const " << customReplacedType(c.deps.parents[0]->name) << "* GetParent() const;";
+                            hpp << m_exportVariable << " const " << customReplacedType(c.deps.parents[0]->name) << "* GetParent() const;";
                         else
-                            hpp << "TIGL_EXPORT " << customReplacedType(c.deps.parents[0]->name) << "* GetParent();";
+                            hpp << m_exportVariable << " " << customReplacedType(c.deps.parents[0]->name) << "* GetParent();";
                     }
                     hpp << EmptyLine;
                 }
@@ -463,12 +477,12 @@ namespace tigl {
         }
 
         void writeUidManagerGetters(IndentingStreamWrapper& hpp, const Class& c) const {
-            hpp << "TIGL_EXPORT virtual CTiglUIDObject* GetNextUIDParent();";
-            hpp << "TIGL_EXPORT virtual const CTiglUIDObject* GetNextUIDParent() const;";
+            hpp << m_exportVariable << " virtual " << m_uIDObject << "* GetNextUIDParent();";
+            hpp << m_exportVariable << " virtual const " << m_uIDObject << "* GetNextUIDParent() const;";
             hpp << EmptyLine;
             if (requiresUidManagerField(c)) {
-                hpp << "TIGL_EXPORT " << c_uidMgrName << "& GetUIDManager();";
-                hpp << "TIGL_EXPORT const " << c_uidMgrName << "& GetUIDManager() const;";
+                hpp << m_exportVariable << " " << c_uidMgrName << "& GetUIDManager();";
+                hpp << m_exportVariable << " const " << c_uidMgrName << "& GetUIDManager() const;";
                 hpp << EmptyLine;
             }
         }
@@ -496,9 +510,9 @@ namespace tigl {
         void writeUidManagerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             for (auto isConst : { true, false }) {
                 if (isConst)
-                    cpp << "const CTiglUIDObject* " << c.name << "::GetNextUIDParent() const";
+                    cpp << "const " << m_uIDObject << "* " << c.name << "::GetNextUIDParent() const";
                 else
-                    cpp << "CTiglUIDObject* " << c.name << "::GetNextUIDParent()";
+                    cpp << m_uIDObject << "* " << c.name << "::GetNextUIDParent()";
                 cpp << "{";
                 {
                     Scope s(cpp);
@@ -602,14 +616,14 @@ namespace tigl {
         }
 
         void writeIODeclarations(IndentingStreamWrapper& hpp) const {
-            hpp << "TIGL_EXPORT virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);";
-            hpp << "TIGL_EXPORT virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;";
+            hpp << m_exportVariable << " virtual void ReadCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath);";
+            hpp << m_exportVariable << " virtual void WriteCPACS(const TixiDocumentHandle& tixiHandle, const std::string& xpath) const;";
             hpp << EmptyLine;
         }
 
         void writeChoiceValidatorDeclaration(IndentingStreamWrapper& hpp, const Class& c) const {
             if (!c.choices.empty()) {
-                hpp << "TIGL_EXPORT bool ValidateChoices() const;";
+                hpp << m_exportVariable << " bool ValidateChoices() const;";
                 hpp << EmptyLine;
             }
         }
@@ -1159,13 +1173,13 @@ namespace tigl {
 
                     switch (f.cardinality()) {
                         case Cardinality::Optional:
-                            hpp << "TIGL_EXPORT virtual " << customReplacedType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "(CreateIfNotExistsTag);";
-                            hpp << "TIGL_EXPORT virtual void Remove" << capitalizeFirstLetter(f.name()) << "();";
+                            hpp << m_exportVariable << " virtual " << customReplacedType(f) << "& Get" << capitalizeFirstLetter(f.name()) << "(CreateIfNotExistsTag);";
+                            hpp << m_exportVariable << " virtual void Remove" << capitalizeFirstLetter(f.name()) << "();";
                             hpp << EmptyLine;
                             break;
                         case Cardinality::Vector:
-                            hpp << "TIGL_EXPORT virtual " << customReplacedType(f) << "& Add" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "();";
-                            hpp << "TIGL_EXPORT virtual void Remove" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "(" <<  customReplacedType(f) << "& ref);";
+                            hpp << m_exportVariable << " virtual " << customReplacedType(f) << "& Add" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "();";
+                            hpp << m_exportVariable << " virtual void Remove" << capitalizeFirstLetter(f.nameWithoutVectorS()) << "(" <<  customReplacedType(f) << "& ref);";
                             hpp << EmptyLine;
                             break;
                     }
@@ -1241,13 +1255,13 @@ namespace tigl {
         }
 
         void writeUidRefObjectFunctionDeclaractions(IndentingStreamWrapper& hpp) const {
-            hpp << "TIGL_EXPORT const CTiglUIDObject* GetNextUIDObject() const final;";
-            hpp << "TIGL_EXPORT void NotifyUIDChange(const std::string& oldUid, const std::string& newUid) final;";
+            hpp << m_exportVariable << " const " << m_uIDObject << "* GetNextUIDObject() const final;";
+            hpp << m_exportVariable << " void NotifyUIDChange(const std::string& oldUid, const std::string& newUid) final;";
             hpp << EmptyLine;
         }
 
         void writeUidRefObjectFunctionImplementations(IndentingStreamWrapper& cpp, const Class& c) const {
-            cpp << "const CTiglUIDObject* " << c.name << "::GetNextUIDObject() const";
+            cpp << "const " << m_uIDObject << "* " << c.name << "::GetNextUIDObject() const";
             cpp << "{";
             {
                 Scope s(cpp);
@@ -1323,7 +1337,7 @@ namespace tigl {
 
             deps.hppIncludes.push_back("<tixi.h>");
             deps.hppIncludes.push_back("<string>");
-            deps.hppIncludes.push_back("\"tigl_internal.h\"");
+            deps.hppIncludes.push_back("\"" + m_libInternal + "\"");
 
             // optional, vector and make_unique
             bool vectorHeader = false;
@@ -1364,7 +1378,7 @@ namespace tigl {
             if (timeHeader)
                 deps.hppIncludes.push_back("<ctime>");
             if (c.deps.parents.size() > 1) {
-                deps.hppIncludes.push_back("\"CTiglError.h\"");
+                deps.hppIncludes.push_back("\"" + m_errorClass + "\"");
                 deps.hppIncludes.push_back("<typeinfo>");
             }
             if (requiresUidManager(c)) {
@@ -1375,11 +1389,11 @@ namespace tigl {
                 deps.hppIncludes.push_back("\"ITiglUIDRefObject.h\"");
             }
             if (hasUidField(c)) {
-                deps.hppIncludes.push_back("\"CTiglUIDObject.h\"");
+                deps.hppIncludes.push_back("\"" + m_uIDObject + ".h\"");
             }
             else {
-                deps.hppCustomForwards.push_back("CTiglUIDObject");
-                deps.cppIncludes.push_back("\"CTiglUIDObject.h\"");
+                deps.hppCustomForwards.push_back(m_uIDObject);
+                deps.cppIncludes.push_back("\"" + m_uIDObject + ".h\"");
             }
 
             // base class
@@ -1439,7 +1453,7 @@ namespace tigl {
             // misc cpp includes
             deps.cppIncludes.push_back("\"TixiHelper.h\"");
             deps.cppIncludes.push_back("\"CTiglLogging.h\"");
-            deps.cppIncludes.push_back("\"CTiglError.h\""); // remove this, when CTiglError inherits std::exception
+            deps.cppIncludes.push_back("\"" + m_errorClass + "\""); // remove this, when CTiglError inherits std::exception
             deps.cppIncludes.push_back("\"" + c.name + ".h\"");
 
             // sort
@@ -1465,12 +1479,12 @@ namespace tigl {
             const auto hasUid = requiresUidManager(c);
             if (requiresParentPointer(c)) {
                 if (c_generateDefaultCtorsForParentPointerTypes)
-                    hpp << "TIGL_EXPORT " << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ");";
+                    hpp << m_exportVariable << " " << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ");";
                 for (const auto& dep : c.deps.parents)
-                    hpp << "TIGL_EXPORT " << c.name << "(" << customReplacedType(dep->name) << "* parent" << (hasUid ? ", " + c_uidMgrName + "* uidMgr" : "") << ");";
+                    hpp << m_exportVariable << " " << c.name << "(" << customReplacedType(dep->name) << "* parent" << (hasUid ? ", " + c_uidMgrName + "* uidMgr" : "") << ");";
                 hpp << EmptyLine;
             } else {
-                hpp << "TIGL_EXPORT " << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ");";
+                hpp << m_exportVariable << " " << c.name << "(" << (hasUid ? c_uidMgrName + "* uidMgr" : "") << ");";
             }
         }
 
@@ -1593,7 +1607,7 @@ namespace tigl {
         }
 
         void writeDtor(IndentingStreamWrapper& hpp, const Class& c) const {
-            hpp << "TIGL_EXPORT virtual ~" << c.name << "();";
+            hpp << m_exportVariable << " virtual ~" << c.name << "();";
             hpp << EmptyLine;
         }
 
@@ -1653,7 +1667,7 @@ namespace tigl {
                 hpp << EmptyLine;
 
             // namespace
-            hpp << "namespace tigl";
+            hpp << "namespace " << m_libNamespace;
             hpp << "{";
             {
                 // custom Tigl types declarations
@@ -1696,7 +1710,7 @@ namespace tigl {
                         if (!c.base.empty())
                             baseclause << "public " << c.base;
                         if (hasUidField(c))
-                            baseclause << (baseclause.str().empty() ? "" : ", ") << "public " << (hasMandatoryUidField(c) ? "CTiglReqUIDObject" : "CTiglOptUIDObject");
+                            baseclause << (baseclause.str().empty() ? "" : ", ") << "public " << (hasMandatoryUidField(c) ? m_reqUIDObject : m_optUIDObject);
                         if (hasUidRefField(c))
                             baseclause << (baseclause.str().empty() ? "" : ", ") << "public ITiglUIDRefObject";
                     }
@@ -1803,7 +1817,7 @@ namespace tigl {
                     }
                 }
             }
-            hpp << "} // namespace tigl";
+            hpp << "} // namespace " << m_libNamespace;
             hpp << EmptyLine;
         }
 
@@ -1832,7 +1846,7 @@ namespace tigl {
                 cpp << EmptyLine;
 
             // namespace
-            cpp << "namespace tigl";
+            cpp << "namespace " << m_libNamespace;
             cpp << "{";
             {
                 cpp << "namespace generated";
@@ -1882,7 +1896,7 @@ namespace tigl {
                 }
                 cpp << "} // namespace generated";
             }
-            cpp << "} // namespace tigl";
+            cpp << "} // namespace " << m_libNamespace;
             cpp << EmptyLine;
         }
 
@@ -1923,12 +1937,12 @@ namespace tigl {
             if (!c_generateCaseSensitiveStringToEnumConversion)
                 hpp << "#include <cctype>";
             hpp << EmptyLine;
-            hpp << "#include \"CTiglError.h\"";
+            hpp << "#include \"" + m_errorClass + "\"";
             hpp << "#include \"to_string.h\"";
             hpp << EmptyLine;
 
             // namespace
-            hpp << "namespace tigl";
+            hpp << "namespace " << m_libNamespace;
             hpp << "{";
             {
 
@@ -2032,7 +2046,7 @@ namespace tigl {
                     }
                 }
             }
-            hpp << "} // namespace tigl";
+            hpp << "} // namespace " << m_libNamespace;
             hpp << EmptyLine;
         }
     };

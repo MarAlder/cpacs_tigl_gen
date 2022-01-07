@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "LibraryConfiguration.h"
 
 namespace tigl {
     struct TypeSystem;
