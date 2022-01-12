@@ -488,6 +488,11 @@ namespace tigl {
             }
         }
 
+        void writeXPathGetter(IndentingStreamWrapper& hpp) const {
+            hpp << m_exportVariable << " virtual const std::string& GetXPath() const;";
+            hpp << EmptyLine;
+        }
+
         void writeParentPointerGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
             if (requiresParentPointer(c)) {
                 if (c.deps.parents.size() == 1) {
@@ -946,6 +951,11 @@ namespace tigl {
                     cpp << EmptyLine;
                 }
 
+                // store xpath
+                cpp << "// store xpath";
+                cpp << "m_xPath = xpath;";
+                cpp << EmptyLine;
+
                 // fields
                 for (const auto& f : fields) {
                     const auto construct = xmlConstructToString(f.xmlType);
@@ -1037,6 +1047,17 @@ namespace tigl {
                 cpp << "!" + f.fieldName() + ".empty()";
             else
                 throw std::logic_error("elements inside choice can only be optional or vector");
+        }
+
+        void writeXPathGetterImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
+            cpp << "const std::string& " << c.name << "::GetXPath() const";
+            cpp << "{";
+            {
+                Scope s(cpp);
+                cpp << "return m_xPath;";
+            }
+            cpp << "}";
+            cpp << EmptyLine;
         }
 
         void writeChoiceValidatorImplementation(IndentingStreamWrapper& cpp, const Class& c) const {
@@ -1508,6 +1529,11 @@ namespace tigl {
             }
         }
 
+        void writeXPathFields(IndentingStreamWrapper& hpp) const {
+            hpp << "std::string m_xPath;";
+            hpp << EmptyLine;
+        }
+
         void writeDeletedCTorAndAssign(IndentingStreamWrapper& hpp, const Class& c) const {
             hpp << c.name << "(const " << c.name << "&) = delete;";
             hpp << "" << c.name << "& operator=(const " << c.name << "&) = delete;";
@@ -1736,6 +1762,9 @@ namespace tigl {
                         // uid manager
                         writeUidManagerGetters(hpp, c);
 
+                        // xPath getter
+                        writeXPathGetter(hpp);
+
                         // io
                         writeIODeclarations(hpp);
 
@@ -1757,6 +1786,9 @@ namespace tigl {
 
                         // uid manager
                         writeUidManagerFields(hpp, c);
+
+                        // xPath
+                        writeXPathFields(hpp);
 
                         // fields
                         writeFields(hpp, c.fields);
@@ -1880,6 +1912,9 @@ namespace tigl {
 
                     // choice validator
                     writeChoiceValidatorImplementation(cpp, c);
+
+                    // xPath getter
+                    writeXPathGetterImplementation(cpp, c);
 
                     // accessors
                     writeAccessorImplementations(cpp, c.name, c.fields);
