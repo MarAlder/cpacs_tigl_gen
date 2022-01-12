@@ -188,6 +188,7 @@ namespace tigl {
         const std::string m_uIDObject = m_libConfig->uIDObject();
         const std::string m_reqUIDObject = m_libConfig->reqUIDObject();
         const std::string m_optUIDObject = m_libConfig->optUIDObject();
+        const std::string m_uIDRefObject = m_libConfig->uIDRefObject();
 
         TypeSystem m_types;
         std::string m_namespace;
@@ -1386,7 +1387,7 @@ namespace tigl {
                 deps.cppIncludes.push_back("\"" + c_uidMgrName + ".h\"");
             }
             if (hasUidRefField(c)) {
-                deps.hppIncludes.push_back("\"ITiglUIDRefObject.h\"");
+                deps.hppIncludes.push_back("\"" + m_uIDRefObject + ".h\"");
             }
             if (hasUidField(c)) {
                 deps.hppIncludes.push_back("\"" + m_uIDObject + ".h\"");
@@ -1712,7 +1713,7 @@ namespace tigl {
                         if (hasUidField(c))
                             baseclause << (baseclause.str().empty() ? "" : ", ") << "public " << (hasMandatoryUidField(c) ? m_reqUIDObject : m_optUIDObject);
                         if (hasUidRefField(c))
-                            baseclause << (baseclause.str().empty() ? "" : ", ") << "public ITiglUIDRefObject";
+                            baseclause << (baseclause.str().empty() ? "" : ", ") << "public " << m_uIDRefObject;
                     }
                     if (baseclause.str().empty())
                         hpp << "class " << c.name;

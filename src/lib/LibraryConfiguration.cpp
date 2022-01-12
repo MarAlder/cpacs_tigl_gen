@@ -12,6 +12,7 @@ namespace tigl {
             m_uIDObject = "CTiglUIDObject";
             m_reqUIDObject = "CTiglReqUIDObject";
             m_optUIDObject = "CTiglOptUIDObject";
+            m_uIDRefObject = "ITiglUIDRefObject";
 
         }
         else if(key=="cpacsLibrary"){
@@ -22,6 +23,7 @@ namespace tigl {
             m_uIDObject = "uIDObject";
             m_reqUIDObject = "reqUIDObject";
             m_optUIDObject = "optUIDObject";
+            m_uIDRefObject = "uIDRefObject";
         }
         else{
             throw "Unknown library. Use one of (tigl|cpacsLibrary).";
@@ -54,6 +56,10 @@ namespace tigl {
 
     std::string LibraryConfiguration::optUIDObject(){
        return m_optUIDObject;
+    }
+
+    std::string LibraryConfiguration::uIDRefObject(){
+       return m_uIDRefObject;
     }
 
 

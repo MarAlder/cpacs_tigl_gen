@@ -17,6 +17,7 @@ namespace tigl {
             std::string uIDObject();
             std::string reqUIDObject();
             std::string optUIDObject();
+            std::string uIDRefObject();
 
         private:
 
@@ -27,6 +28,7 @@ namespace tigl {
             std::string m_uIDObject;
             std::string m_reqUIDObject;
             std::string m_optUIDObject;
+            std::string m_uIDRefObject;
 
     };
     

@@ -12,8 +12,12 @@
 
 namespace tigl {
     namespace {
+
+        // ToDo: Automate this at a central location
+        const auto c_libraryKey = std::string("cpacsLibrary");
+
         auto makeClassName(std::string name) -> std::string {
-            if (!name.empty()) {
+            if (!name.empty()&&c_libraryKey=="tigl") {
                 // capitalize first letter
                 name[0] = std::toupper(name[0]);
 
@@ -392,15 +396,17 @@ namespace tigl {
                         if (pos != std::string::npos)
                             name.erase(0, pos + 1);
 
-                        // capitalize first letter
-                        name[0] = std::toupper(name[0]);
+                        if(c_libraryKey=="tigl"){
+                            // capitalize first letter
+                            name[0] = std::toupper(name[0]);
 
-                        // strip Type suffix if exists
-                        name = xsd::stripTypeSuffix(name);
+                            // strip Type suffix if exists
+                            name = xsd::stripTypeSuffix(name);
 
-                        // prefix CPACS if not exists
-                        if (name.compare(0, 5, "CPACS") != 0)
-                            name = "CPACS" + name;
+                            // prefix CPACS if not exists
+                            if (name.compare(0, 5, "CPACS") != 0)
+                                name = "CPACS" + name;
+                        }
 
                         return name;
                     };
